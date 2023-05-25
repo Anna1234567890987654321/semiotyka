@@ -1,0 +1,153 @@
+---
+title: "COVID-19 Vaccination Analysis"
+author: "Anna Prus"
+output:
+    pdf_document:
+        number_sections: yes
+        df_print: kable
+        keep_tex: yes
+        extra_dependencies: ["flafter"]
+        includes:
+            in_header: Rafal_latex7.sty
+    html_document:
+        df_print: paged
+    word_document: default
+classoption: dvipsnames,enabledeprecatedfontcommands
+fontsize: 10pt
+documentclass: scrartcl
+urlcolor: blue
+---
+
+# Introduction
+This analysis aims to explore the COVID-19 vaccination progress worldwide. We will look at the number of total and daily vaccinations. We will also examine the top ten countries by total vaccinations. In the context of the ongoing COVID-19 pandemic, monitoring and understanding the progress of global vaccination efforts is crucial. By analyzing the vaccination data, we can gain insights into the distribution and effectiveness of vaccination programs worldwide.
+
+## Data Access and Description
+The data used in this analysis is sourced from [Our World in Data COVID-19 Vaccination Data](https://ourworldindata.org/covid-vaccinations) and is updated daily. It includes information on total vaccinations, daily vaccinations, and other related variables for various countries. It provides a comprehensive view of the global vaccination efforts and enables us to conduct an in-depth analysis of the progress. Before proceeding with the analysis, data cleaning was performed to ensure the accuracy and reliability of the results. The cleaning process involved removing any missing or irrelevant data points, filtering the latest data for each location, and excluding continents and income groups from the analysis.
+
+## Visualization of Vaccination Trends
+To visualize the COVID-19 vaccination trends, two visualizations were created: one depicting the total vaccinations over time and another showing the daily vaccinations. These visualizations provide a clear picture of the vaccination progress and allow us to identify any notable patterns or trends.
+
+\newpage
+# Total and Daily Vaccinations
+First, let's look at the total and daily vaccinations over time. This analysis will provide insights into the overall progress and daily trends of COVID-19 vaccinations worldwide.
+```{r,echo=FALSE,eval=TRUE,fig.align = "center",cache=TRUE, fig.show = "hold",warning = FALSE, message = FALSE, results = FALSE}
+library(extrafont)
+library(ggplot2)
+library(ggthemes)
+library(ggpubr)
+library(socviz)
+library(tidyverse)
+library(gapminder)
+library(modelr)
+library(lubridate)
+library(scales)
+library(patchwork)
+library(readr)
+
+data <- read_csv("owid-covid-data.csv")
+```
+```{r,echo=FALSE,eval=TRUE,fig.align = "center",cache=TRUE, fig.show = "hold", out.height = "60%", warning = FALSE, message = FALSE, dev="cairo_pdf"}
+# Filter necessary columns
+vaccination_data <- data %>%
+  select(location, date, total_vaccinations, people_vaccinated, people_fully_vaccinated)
+
+# Remove rows with missing values
+vaccination_data <- vaccination_data %>%
+  filter(!is.na(total_vaccinations) &
+           !is.na(people_vaccinated) &
+           !is.na(people_fully_vaccinated))
+
+vaccination_data$date <- ymd(vaccination_data$date)
+
+# Calculate daily vaccinations
+daily_vaccinations <- vaccination_data %>%
+  group_by(date) %>%
+  summarise(total_vaccinations = sum(total_vaccinations, na.rm = TRUE),
+            people_vaccinated = sum(people_vaccinated, na.rm = TRUE),
+            people_fully_vaccinated = sum(people_fully_vaccinated, na.rm = TRUE)) %>%
+  mutate(daily_vaccinations = c(NA, diff(total_vaccinations)))
+
+# Plot daily vaccinations
+plot_total <- ggplot(daily_vaccinations, aes(x = date, y = total_vaccinations)) +
+  geom_line(color = "blue") +
+  labs(x = "Date", y = "Total Vaccinations", title = "Total COVID-19 Vaccinations") +
+  theme_minimal()
+
+plot_daily <- ggplot(daily_vaccinations, aes(x = date, y = daily_vaccinations)) +
+  geom_line(color = "green") +
+  labs(x = "Date", y = "Daily Vaccinations", title = "Daily COVID-19 Vaccinations") +
+  theme_minimal()
+
+# Combine plots
+combined_plot <- plot_total + plot_daily
+combined_plot
+```
+By analyzing both the total and daily vaccinations, we gain a comprehensive view of the COVID-19 vaccination progress. These visualizations provide valuable insights into the scale and pace of vaccinations, allowing us to evaluate the effectiveness of vaccination campaigns and identify potential areas for improvement.
+\newpage
+
+
+# Top Performing Countries
+Next, let's identify the top performing countries in terms of vaccination rates and compare their progress. We will filter the latest data for each location and sort the countries by total vaccinations. Then, we will create a bar plot for the top 10 countries. As the dataset contains continents and income groups, we will exclude them from the analysis.
+
+
+\vspace{1mm}
+\footnotesize
+```{r,echo=FALSE,eval=TRUE,fig.align = "left",cache=TRUE, fig.show = "hold", warning = FALSE, message = FALSE, dev="cairo_pdf"}
+# Filter latest data for each location (excluding empty locations)
+latest_data <- vaccination_data %>%
+  group_by(location) %>%
+  filter(date == max(date) &
+           location != "" &
+           location != "World" &
+           location != "Upper middle income" &
+           location != "Lower middle income" &
+           location != "High income" &
+           location != "Low income" &
+           location != "Europe" &
+           location != "European Union" &
+           location != "Asia" &
+           location != "North America" &
+           location != "South America" &
+           location != "Africa" &
+           location != "Oceania")
+
+# Sort countries by total vaccinations
+top_countries <- latest_data %>%
+  filter(!is.na(total_vaccinations)) %>%
+  arrange(desc(total_vaccinations)) %>%
+  head(10)
+
+# Create a bar plot for top countries
+top_countries_plot <- ggplot(top_countries, aes(x = reorder(location, -total_vaccinations), y = total_vaccinations)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(x = "Country", y = "Total Vaccinations", title = "Top 10 Countries by Total Vaccinations") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+top_countries_plot
+```
+\normalsize
+\newpage
+
+# Conclusions {-}
+- The global COVID-19 vaccination efforts have made significant progress, with numerous countries actively administering vaccinations.
+- Several countries emerge as leaders in terms of total vaccinations, demonstrating the effectiveness of their vaccination campaigns.
+- Daily vaccination rates show variations among different countries, indicating diverse approaches and strategies in vaccine distribution.
+- While the analysis provides valuable insights, it is essential to consider potential sources of errors and doubts, such as data accuracy, reporting inconsistencies, and variations in vaccination policies across countries.
+
+By understanding the context, accessing relevant data, conducting thorough analysis, and considering potential limitations, we can derive meaningful insights from the COVID-19 vaccination data and contribute to the global efforts to combat the pandemic.
+
+# Potential Sources of Errors and Doubts {-}
+- Variations in data reporting and quality across different countries and regions
+- Incomplete or missing data points that might affect the accuracy of the analysis
+- Differences in vaccination policies, distribution strategies, and reporting mechanisms among countries
+
+# Check list {-}
+- [x] We described the context of our problem
+- [x] We clearly stated the questions that guided our project, and why we think they are important
+- [x] We located and accessed relevant data
+- [x] We correctly described how the data set has been obtained
+- [x] We constructed at least two visualizations presenting the phenomenon that we are describing
+- [x] We construct (with prior predictive check and posterior predictive check) and visualize at least one model related to the numerical questions we were addressing
+- [x] We clearly explained what conclusions we are inclined to draw and why
+- [x] We considered and clearly stated potential sources of errors and doubts
