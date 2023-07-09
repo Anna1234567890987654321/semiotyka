@@ -3,12 +3,12 @@ title: "COVID-19 Vaccination Analysis"
 author: "Anna Prus"
 output:
     pdf_document:
-        number_sections: yes
-        df_print: kable
-        keep_tex: yes
-        extra_dependencies: ["flafter"]
-        includes:
-            in_header: Rafal_latex7.sty
+    number_sections: yes
+    df_print: kable
+    keep_tex: yes
+    extra_dependencies: ["flafter"]
+    includes:
+        in_header: Rafal_latex7.sty
     html_document:
         df_print: paged
     word_document: default
@@ -19,15 +19,15 @@ urlcolor: blue
 ---
 
 # Introduction
-This analysis aims to explore the COVID-19 vaccination progress worldwide. We will look at the number of total and daily vaccinations. We will also examine the top ten countries by total vaccinations. In the context of the ongoing COVID-19 pandemic, monitoring and understanding the progress of global vaccination efforts is crucial. By analyzing the vaccination data, we can gain insights into the distribution and effectiveness of vaccination programs worldwide.
+This analysis aims to explore the COVID-19 vaccination progress worldwide. We will look at the number of total and daily vaccinations. Additionally, we will examine the top ten countries by vaccination rate per 100k citizens. In the context of the ongoing COVID-19 pandemic, monitoring and understanding the progress of global vaccination efforts is crucial. By analyzing the vaccination data, we can gain insights into the distribution and effectiveness of vaccination programs worldwide.
 
 ## Data Access and Description
-The data used in this analysis is sourced from [Our World in Data COVID-19 Vaccination Data](https://ourworldindata.org/covid-vaccinations) and is updated daily. It includes information on total vaccinations, daily vaccinations, and other related variables for various countries. It provides a comprehensive view of the global vaccination efforts and enables us to conduct an in-depth analysis of the progress. Before proceeding with the analysis, data cleaning was performed to ensure the accuracy and reliability of the results. The cleaning process involved removing any missing or irrelevant data points, filtering the latest data for each location, and excluding continents and income groups from the analysis.
+The data used in this analysis is sourced from [Our World in Data COVID-19 Vaccination Data](https://ourworldindata.org/covid-vaccinations) and is updated daily. It includes information on total vaccinations, daily vaccinations, people vaccinated, people fully vaccinated, and population for various countries. It provides a comprehensive view of the global vaccination efforts and enables us to conduct an in-depth analysis of the progress. Before proceeding with the analysis, data cleaning was performed to ensure the accuracy and reliability of the results. The cleaning process involved removing any missing or irrelevant data points, filtering the latest data for each location, and excluding continents and income groups from the analysis.
 
 ## Visualization of Vaccination Trends
 To visualize the COVID-19 vaccination trends, two visualizations were created: one depicting the total vaccinations over time and another showing the daily vaccinations. These visualizations provide a clear picture of the vaccination progress and allow us to identify any notable patterns or trends.
-
 \newpage
+
 # Total and Daily Vaccinations
 First, let's look at the total and daily vaccinations over time. This analysis will provide insights into the overall progress and daily trends of COVID-19 vaccinations worldwide.
 ```{r,echo=FALSE,eval=TRUE,fig.align = "center",cache=TRUE, fig.show = "hold",warning = FALSE, message = FALSE, results = FALSE}
@@ -49,7 +49,7 @@ data <- read_csv("owid-covid-data.csv")
 ```{r,echo=FALSE,eval=TRUE,fig.align = "center",cache=TRUE, fig.show = "hold", out.height = "60%", warning = FALSE, message = FALSE, dev="cairo_pdf"}
 # Filter necessary columns
 vaccination_data <- data %>%
-  select(location, date, total_vaccinations, people_vaccinated, people_fully_vaccinated)
+  select(location, date, total_vaccinations, people_vaccinated, people_fully_vaccinated, population)
 
 # Remove rows with missing values
 vaccination_data <- vaccination_data %>%
@@ -70,28 +70,26 @@ daily_vaccinations <- vaccination_data %>%
 # Plot daily vaccinations
 plot_total <- ggplot(daily_vaccinations, aes(x = date, y = total_vaccinations)) +
   geom_line(color = "blue") +
-  labs(x = "Date", y = "Total Vaccinations", title = "Total COVID-19 Vaccinations") +
+  labs(x = "Date", y = "Total Vaccinations", title = "Total COVID-19 Vaccinations over Time") +
   theme_minimal()
+
+plot_total
 
 plot_daily <- ggplot(daily_vaccinations, aes(x = date, y = daily_vaccinations)) +
   geom_line(color = "green") +
-  labs(x = "Date", y = "Daily Vaccinations", title = "Daily COVID-19 Vaccinations") +
+  labs(x = "Date", y = "Daily Vaccinations", title = "Daily COVID-19 Vaccinations over Time") +
   theme_minimal()
 
-# Combine plots
-combined_plot <- plot_total + plot_daily
-combined_plot
+plot_daily
 ```
 By analyzing both the total and daily vaccinations, we gain a comprehensive view of the COVID-19 vaccination progress. These visualizations provide valuable insights into the scale and pace of vaccinations, allowing us to evaluate the effectiveness of vaccination campaigns and identify potential areas for improvement.
 \newpage
 
-
 # Top Performing Countries
-Next, let's identify the top performing countries in terms of vaccination rates and compare their progress. We will filter the latest data for each location and sort the countries by total vaccinations. Then, we will create a bar plot for the top 10 countries. As the dataset contains continents and income groups, we will exclude them from the analysis.
-
-
+Next, let's identify the top performing countries in terms of vaccination rates per 100k citizens and compare their progress. We will filter the latest data for each location and sort the countries by vaccination rate. Then, we will create a bar plot for the top 10 countries. As the dataset contains continents and income groups, we will exclude them from the analysis.
 \vspace{1mm}
 \footnotesize
+
 ```{r,echo=FALSE,eval=TRUE,fig.align = "left",cache=TRUE, fig.show = "hold", warning = FALSE, message = FALSE, dev="cairo_pdf"}
 # Filter latest data for each location (excluding empty locations)
 latest_data <- vaccination_data %>%
@@ -111,16 +109,17 @@ latest_data <- vaccination_data %>%
            location != "Africa" &
            location != "Oceania")
 
-# Sort countries by total vaccinations
+# Then calculate the vaccination rate per 100k
 top_countries <- latest_data %>%
   filter(!is.na(total_vaccinations)) %>%
-  arrange(desc(total_vaccinations)) %>%
+  mutate(vaccination_rate_per_100k = (total_vaccinations / population) * 100000) %>%
+  arrange(desc(vaccination_rate_per_100k)) %>%
   head(10)
 
-# Create a bar plot for top countries
-top_countries_plot <- ggplot(top_countries, aes(x = reorder(location, -total_vaccinations), y = total_vaccinations)) +
+# Create a bar plot for top countries by vaccination rate per 100K citizens
+top_countries_plot <- ggplot(top_countries, aes(x = reorder(location, -vaccination_rate_per_100k), y = vaccination_rate_per_100k)) +
   geom_bar(stat = "identity", fill = "skyblue") +
-  labs(x = "Country", y = "Total Vaccinations", title = "Top 10 Countries by Total Vaccinations") +
+  labs(x = "Country", y = "Vaccination Rate per 100K Citizens", title = "Top 10 Countries by Vaccination Rate per 100K Citizens") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   coord_flip()
 
@@ -131,7 +130,7 @@ top_countries_plot
 
 # Conclusions {-}
 - The global COVID-19 vaccination efforts have made significant progress, with numerous countries actively administering vaccinations.
-- Several countries emerge as leaders in terms of total vaccinations, demonstrating the effectiveness of their vaccination campaigns.
+- The vaccination rate per 100k citizens provides a more nuanced view of vaccination progress in different countries, taking into account their population size.
 - Daily vaccination rates show variations among different countries, indicating diverse approaches and strategies in vaccine distribution.
 - While the analysis provides valuable insights, it is essential to consider potential sources of errors and doubts, such as data accuracy, reporting inconsistencies, and variations in vaccination policies across countries.
 
